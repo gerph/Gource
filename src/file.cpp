@@ -16,6 +16,7 @@
 */
 
 #include "file.h"
+#include <iostream>
 
 float gGourceFileDiameter  = 8.0;
 
@@ -50,7 +51,17 @@ RFile::RFile(const std::string & name, const vec3 & colour, const vec2 & pos, in
     distance = 0;
 
     setFilename(name);
+    colourize();
 
+/*
+    std::cerr << "Path '" << name << "' extension " << ext
+              << " => colour "
+              << file_colour[0] << ","
+              << file_colour[1] << ","
+              << file_colour[2]
+              << std::endl;
+*/
+    
     if(!file_selected_font.initialized()) {
         file_selected_font = fontmanager.grab(gGourceSettings.font_file, 18);
         file_selected_font.dropShadow(true);
@@ -125,8 +136,98 @@ void RFile::setFilename(const std::string& abs_file_path) {
 
     //trim name to just extension
     size_t dotsep = name.rfind(".");
+    size_t filetype = name.rfind(",");
+    if (filetype == name.size() - 4 &&
+        std::isxdigit(name[filetype + 1]) &&
+        std::isxdigit(name[filetype + 2]) &&
+        std::isxdigit(name[filetype + 3])) {
 
-    if(dotsep != std::string::npos && dotsep != name.size()-1) {
+        // Try to convert the type number to a name
+        std::string type = name.substr(filetype + 1);
+        if (type == "fff") { ext = std::string("type Text"); }
+        else if (type == "ffe") { ext = std::string("type Command"); }
+        else if (type == "ffd") { ext = std::string("type Data"); }
+        else if (type == "ffc") { ext = std::string("type Utility"); }
+        else if (type == "ffb") { ext = std::string("type BASIC"); }
+        else if (type == "ffa") { ext = std::string("type Module"); }
+        else if (type == "ff9") { ext = std::string("type Sprite"); }
+        else if (type == "ff8") { ext = std::string("type Absolute"); }
+        else if (type == "ff7") { ext = std::string("type BBC font"); }
+        else if (type == "ff6") { ext = std::string("type Font"); }
+        else if (type == "ff5") { ext = std::string("type PoScript"); }
+        else if (type == "ff4") { ext = std::string("type Printout"); }
+        else if (type == "ff2") { ext = std::string("type Config"); }
+        else if (type == "ff0") { ext = std::string("type TIFF"); }
+        else if (type == "fd1") { ext = std::string("type BasicTxt"); }
+        else if (type == "fed") { ext = std::string("type Palette"); }
+        else if (type == "fec") { ext = std::string("type Template"); }
+        else if (type == "feb") { ext = std::string("type Obey"); }
+        else if (type == "fea") { ext = std::string("type Desktop"); }
+        else if (type == "fe6") { ext = std::string("type Unix Ex"); }
+        else if (type == "fe5") { ext = std::string("type EPROM"); }
+        else if (type == "fdc") { ext = std::string("type SoftLink"); }
+        else if (type == "fd3") { ext = std::string("type DebImage"); }
+        else if (type == "fca") { ext = std::string("type Squash"); }
+        else if (type == "fc9") { ext = std::string("type SunRastr"); }
+        else if (type == "faf") { ext = std::string("type HTML"); }
+        else if (type == "fae") { ext = std::string("type Resource"); }
+        else if (type == "f89") { ext = std::string("type GZip"); }
+        else if (type == "d94") { ext = std::string("type ArtWork"); }
+        else if (type == "c85") { ext = std::string("type JPEG"); }
+        else if (type == "bbc") { ext = std::string("type BBC ROM"); }
+        else if (type == "b61") { ext = std::string("type XBM"); }
+        else if (type == "b60") { ext = std::string("type PNG"); }
+        else if (type == "b2f") { ext = std::string("type WMF"); }
+        else if (type == "aff") { ext = std::string("type DrawFile"); }
+        else if (type == "a91") { ext = std::string("type Zip"); }
+        else if (type == "a66") { ext = std::string("type WebP"); }
+        else if (type == "a65") { ext = std::string("type JPEG2000"); }
+        else if (type == "69e") { ext = std::string("type PNM"); }
+        else if (type == "69d") { ext = std::string("type Targa"); }
+        else if (type == "69c") { ext = std::string("type BMP"); }
+        else if (type == "697") { ext = std::string("type PCX"); }
+        else if (type == "695") { ext = std::string("type GIF"); }
+        else if (type == "690") { ext = std::string("type Clear"); }
+        else if (type == "1c9") { ext = std::string("type DiagData"); }
+        else if (type == "132") { ext = std::string("type ICO"); }
+        else {
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), "type &%s", type.c_str());
+            ext = std::string(buffer);
+        }
+
+        /*
+        vec3 ch = colourHash(ext);
+        std::cerr << "Filetype name '" << buffer << "' => "
+                  << ch[0] << ","
+                  << ch[1] << ","
+                  << ch[2]
+                  << std::endl;
+        */
+    }
+
+    // Special case for the RISC OS Pyromaniac source code wth untyped files
+    else if (fullpath.find("/o/") != std::string::npos) {
+        ext = std::string("AOF");
+    }
+    else if (fullpath.find("/s/") != std::string::npos ||
+             fullpath.find("/hdr/") != std::string::npos) {
+        ext = std::string("ObjAsm");
+    }
+    else if (fullpath.find("/bin/") != std::string::npos) {
+        // These are always bare utilities if they haven't got a filetype on the end.
+        ext = std::string("type Utility");
+    }
+    else if (fullpath.find("/expect/") != std::string::npos) {
+        // All the files in the expectation directory are text files.
+        ext = std::string("expectation");
+    }
+    else if (fullpath.find("testcode/tests") != std::string::npos) {
+        // All the files in the expectation directory are text files.
+        ext = std::string("test script");
+    }
+
+    else if(dotsep != std::string::npos && dotsep != name.size()-1) {
         ext = name.substr(dotsep+1);
     } else if(gGourceSettings.file_extension_fallback) {
         ext = name;
@@ -134,6 +235,7 @@ void RFile::setFilename(const std::string& abs_file_path) {
 }
 
 void RFile::colourize() {
+    //file_colour = vec3(0.0f, 0.0f, 1.0f);
     file_colour = ext.size() ? colourHash(ext) : vec3(1.0f, 1.0f, 1.0f);
 }
 
@@ -150,6 +252,7 @@ const vec3 & RFile::getFileColour() const{
 }
 
 vec3 RFile::getColour() const{
+
     if(selected) return vec3(1.0f);
 
     float lc = elapsed - last_action;

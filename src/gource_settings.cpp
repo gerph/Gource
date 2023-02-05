@@ -209,7 +209,7 @@ if(extended_help) {
 GourceSettings::GourceSettings() {
     repo_count = 0;
     file_graphic = 0;
-    log_level = LOG_LEVEL_OFF;
+    log_level = LOG_LEVEL_DEBUG;
     shutdown = false;
 
     setGourceDefaults();
